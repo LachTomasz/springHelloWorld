@@ -5,99 +5,65 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.*;
 
 class PaymentServiceTest {
 
-    PaymentService paymentService = new PaymentService();
+    PaymentClient paymentClient = mock(PaymentClient.class);
+    PaymentService paymentService = new PaymentService(paymentClient);
 
     @Test
-    void shouldChargeRequestTrue() {
+    void shouldChargeAllRequests() {
 
         //Given
-        List<PaymentRequest> requests = List.of(new PaymentRequest("123", "AMEX"),
-                                                new PaymentRequest("321", "VISA"),
-                                                new PaymentRequest("894", "AMEX"),
-                                                new PaymentRequest("795", "MASTERCARD"),
-                                                new PaymentRequest("890", "MASTERCARD"));
+        PaymentRequest reqeust1 = new PaymentRequest("123", "AMEX");
+        PaymentRequest request2 = new PaymentRequest("321", "VISA");
+        PaymentRequest request3 = new PaymentRequest("890", "MASTERCARD");
+
+        List<PaymentRequest> requests = List.of(reqeust1, request2, request3);
+
+        PaymentResponse response1 = new PaymentResponse("Success", true, false, reqeust1.token, reqeust1.cardType);
+        PaymentResponse response2 = new PaymentResponse("Success", true, false, request2.token, request2.cardType);
+        PaymentResponse response3 = new PaymentResponse("Success", true, false, request3.token, request3.cardType);
+
+        given(paymentClient.charge(reqeust1)).willReturn(response1);
+        given(paymentClient.charge(request2)).willReturn(response2);
+        given(paymentClient.charge(request3)).willReturn(response3);
+
 
         //When
         List<PaymentResponse> result = paymentService.chargeRequest(requests);
 
         //Then
-        assertThat(result.get(0).charged).isTrue();
-        assertThat(result.get(0).voided).isFalse();
-        assertThat(result.get(0).status).isEqualTo("SUCCESS");
-        assertThat(result.get(0).token).isEqualTo("123");
-        assertThat(result.get(0).cardType).isEqualTo("AMEX");
-
-        assertThat(result.get(1).charged).isTrue();
-        assertThat(result.get(0).voided).isFalse();
-        assertThat(result.get(1).status).isEqualTo("SUCCESS");
-        assertThat(result.get(1).token).isEqualTo("123");
-        assertThat(result.get(1).cardType).isEqualTo("AMEX");
-
-        assertThat(result.get(2).charged).isTrue();
-        assertThat(result.get(0).voided).isFalse();
-        assertThat(result.get(2).status).isEqualTo("SUCCESS");
-        assertThat(result.get(2).token).isEqualTo("123");
-        assertThat(result.get(2).cardType).isEqualTo("AMEX");
-
-        assertThat(result.get(3).charged).isTrue();
-        assertThat(result.get(0).voided).isFalse();
-        assertThat(result.get(3).status).isEqualTo("SUCCESS");
-        assertThat(result.get(3).token).isEqualTo("123");
-        assertThat(result.get(3).cardType).isEqualTo("AMEX");
-
-        assertThat(result.get(4).charged).isTrue();
-        assertThat(result.get(0).voided).isFalse();
-        assertThat(result.get(4).status).isEqualTo("SUCCESS");
-        assertThat(result.get(4).token).isEqualTo("123");
-        assertThat(result.get(4).cardType).isEqualTo("AMEX");
+        assertThat(result).containsExactlyInAnyOrder(response1, response2, response3);//róznica set a mapa
     }
 
     @Test
-    void shouldChargeRequestFalse() {
+    void shouldVoidChargedRequestWhenAnyRequestFailed () {
 
         //Given
-        List<PaymentRequest> requests = List.of(new PaymentRequest("123", "AMEX"),
-                new PaymentRequest("321", "VISA"),
-                new PaymentRequest("894", "AMEX"),
-                new PaymentRequest("795", "MASTERCARD"),
-                new PaymentRequest("890", "MASTERCARD"));
+        PaymentRequest reqeust1 = new PaymentRequest("123", "AMEX");
+        PaymentRequest request2 = new PaymentRequest("321", "VISA");
+        PaymentRequest request3 = new PaymentRequest("890", "MASTERCARD");
+
+        List<PaymentRequest> requests = List.of(reqeust1, request2, request3);
+
+        PaymentResponse response1 = new PaymentResponse("Success", true, false, reqeust1.token, reqeust1.cardType);
+        PaymentResponse response2 = new PaymentResponse("Failure", false, false, request2.token, request2.cardType);
+        PaymentResponse response3 = new PaymentResponse("Success", true, false, request3.token, request3.cardType);
+
+        given(paymentClient.charge(reqeust1)).willReturn(response1);
+        given(paymentClient.charge(request2)).willReturn(response2);
+        given(paymentClient.charge(request3)).willReturn(response3);
+
 
         //When
         List<PaymentResponse> result = paymentService.chargeRequest(requests);
 
         //Then
-        assertThat(result.get(0).charged).isFalse();
-        assertThat(result.get(0).voided).isTrue();
-        assertThat(result.get(0).status).isEqualTo("SUCCESS");
-        assertThat(result.get(0).token).isEqualTo("123");
-        assertThat(result.get(0).cardType).isEqualTo("AMEX");
-
-        assertThat(result.get(1).charged).isFalse();
-        assertThat(result.get(0).voided).isTrue();
-        assertThat(result.get(1).status).isEqualTo("SUCCESS");
-        assertThat(result.get(1).token).isEqualTo("123");
-        assertThat(result.get(1).cardType).isEqualTo("AMEX");
-
-        assertThat(result.get(2).charged).isFalse();
-        assertThat(result.get(0).voided).isTrue();
-        assertThat(result.get(2).status).isEqualTo("SUCCESS");
-        assertThat(result.get(2).token).isEqualTo("123");
-        assertThat(result.get(2).cardType).isEqualTo("AMEX");
-
-        assertThat(result.get(3).charged).isFalse();
-        assertThat(result.get(0).voided).isTrue();
-        assertThat(result.get(3).status).isEqualTo("SUCCESS");
-        assertThat(result.get(3).token).isEqualTo("123");
-        assertThat(result.get(3).cardType).isEqualTo("AMEX");
-
-        assertThat(result.get(4).charged).isFalse();
-        assertThat(result.get(0).voided).isTrue();
-        assertThat(result.get(4).status).isEqualTo("SUCCESS");
-        assertThat(result.get(4).token).isEqualTo("123");
-        assertThat(result.get(4).cardType).isEqualTo("AMEX");
+        assertThat(result).containsExactlyInAnyOrder(response1, response2, response3);//róznica set a mapa
+        verify(paymentClient).voidCharge(reqeust1);
+        verify(paymentClient).voidCharge(request3);
     }
 }

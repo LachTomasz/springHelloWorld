@@ -1,23 +1,30 @@
 package com.lach.springHelloWorld;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PaymentService {
 
+   private final PaymentClient paymentClient;
+
+    public PaymentService(PaymentClient paymentClient) {
+        this.paymentClient = paymentClient;
+    }
+
     public List<PaymentResponse> chargeRequest(List<PaymentRequest> requests){
 
-        List<PaymentResponse> paymentResponses = requests.stream()
-                .map(paymentRequest -> new PaymentClient().charge(paymentRequest)).toList();
+        Map<PaymentResponse, PaymentRequest> paymentResponseToRequest = requests.stream()
+                .collect(Collectors.toMap(paymentClient::charge, v -> v));
 
-        boolean status = paymentResponses.stream()
-                .anyMatch(paymentResponse -> paymentResponse.charged);
-        if (!status) paymentResponses = requests.stream()
-                .map(paymentRequest -> new PaymentClient().voidCharge(paymentRequest)).toList();
+        boolean anyPaymentFailed = paymentResponseToRequest.keySet().stream()
+                .anyMatch(paymentResponse -> !paymentResponse.charged);
+        if (anyPaymentFailed){
+            paymentResponseToRequest.entrySet().stream()
+                    .filter(paymentResponsePaymentRequestEntry -> paymentResponsePaymentRequestEntry.getKey().charged)
+                    .forEach(paymentResponsePaymentRequestEntry -> paymentClient.voidCharge(paymentResponsePaymentRequestEntry.getValue()));
+        }
 
-        return paymentResponses;
+        return paymentResponseToRequest.keySet().stream().toList();
     }
 }
